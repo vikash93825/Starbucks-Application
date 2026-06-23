@@ -8,40 +8,45 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: 📥 Checkout Code
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 🐳 Deploy to EC2 via SSH
-        uses: appleboy/ssh-action@v0.1.10
+      - name: 🐳 Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_SSH_KEY }}
+
           script: |
-            echo "✅ Connected to EC2"
 
-            # Go to project folder
-            cd /home/ubuntu/Starbucks-Application
+            echo "✅ Connected"
 
-            # Pull latest code
-            git pull origin main
-            echo "✅ Code pulled"
+            cd /root/Starbucks-Application
 
-            # Stop old container if running
+            echo "📥 Updating code"
+            git fetch origin
+            git reset --hard origin/main
+
+            echo "🧹 Remove old container"
             docker stop Starbucks-Application || true
             docker rm Starbucks-Application || true
-            echo "✅ Old container removed"
 
-            # Build new Docker image
+            echo "🧹 Remove old image"
+            docker rmi Starbucks-Application || true
+
+            echo "🏗 Build image"
             docker build -t Starbucks-Application .
-            echo "✅ New image built"
 
-            # Run new container
+            echo "🚀 Start container"
             docker run -d \
               --name Starbucks-Application \
-              -p 80:80 \
+              -p 80:3000 \
               --restart always \
               Starbucks-Application
-            echo "🚀 New container is live!"
+
+            echo "📋 Running containers"
+            docker ps
